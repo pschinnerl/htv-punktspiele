@@ -1,0 +1,142 @@
+rules_version = '2';
+// =====================================================================
+// HTV-Punktspiele – Firestore Security Rules
+// Ansatz: kein Backend, keine Cloud Functions, kein Blaze-Plan.
+// Spieler authentifizieren sich über einen geheimen Token, der als
+// Dokument-ID verwendet wird (nicht als Feld gespeichert!).
+// Mannschaftsführer/Vorstand melden sich normal per E-Mail+Passwort an.
+// =====================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ---------------------------------------------------------------
+    // Hilfsfunktionen
+    // ---------------------------------------------------------------
+    // Echter Login (nicht anonym) = Mannschaftsführer oder Vorstand
+    function istAngemeldet() {
+      return request.auth != null
+             && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    // Rolle wird aus /rollen/{uid} gelesen (kein Custom Claim nötig,
+    // da wir ohne Admin-SDK/Cloud Function arbeiten)
+    function rolle() {
+      return get(/databases/$(database)/documents/rollen/$(request.auth.uid)).data;
+    }
+    function istVorstand() {
+      return istAngemeldet()
+             && exists(/databases/$(database)/documents/rollen/$(request.auth.uid))
+             && rolle().rolle == 'vorstand';
+    }
+    function istMF() {
+      return istAngemeldet()
+             && exists(/databases/$(database)/documents/rollen/$(request.auth.uid))
+             && rolle().rolle in ['mannschaftsfuehrer', 'vorstand'];
+    }
+    // Betreut dieser MF das angegebene Team?
+    function betreutTeam(teamId) {
+      return istVorstand() || (istMF() && teamId in rolle().teamIds);
+    }
+    // Existiert ein Zugangs-Token? (= Nachweis, dass der Aufrufer
+    // einen gültigen Spieler-Link besitzt)
+    function tokenGueltig(token) {
+      return exists(/databases/$(database)/documents/zugang/$(token));
+    }
+    function tokenDaten(token) {
+      return get(/databases/$(database)/documents/zugang/$(token)).data;
+    }
+    // Irgendein eingeloggter Nutzer (auch anonym über Spieler-Link)
+    function istEingeloggt() {
+      return request.auth != null;
+    }
+    // ---------------------------------------------------------------
+    // rollen/{uid} – Rollenzuordnung für angemeldete Nutzer
+    // Wird ausschließlich manuell in der Firebase Console gepflegt.
+    // ---------------------------------------------------------------
+    match /rollen/{uid} {
+      allow read:  if istAngemeldet() && request.auth.uid == uid;
+      allow write: if false;   // nur über Firebase Console
+    }
+    // ---------------------------------------------------------------
+    // zugang/{token} – Lookup-Tabelle Token -> Spieler
+    // Doc-ID = geheimer Token. Enthält NUR: spielerId, teamIds.
+    // Kein 'list' erlaubt: ohne Kenntnis des Tokens nicht auffindbar.
+    // ---------------------------------------------------------------
+    match /zugang/{token} {
+      allow get:   if istEingeloggt();      // wer den Token kennt, darf lesen
+      allow list:  if istMF();              // nur MF/Vorstand darf auflisten
+      allow write: if istMF();              // Token anlegen/erneuern
+    }
+    // ---------------------------------------------------------------
+    // teams/{teamId}
+    // ---------------------------------------------------------------
+    match /teams/{teamId} {
+      allow read:   if istEingeloggt();
+      allow create: if istMF();
+      allow update, delete: if betreutTeam(teamId);
+    }
+    // ---------------------------------------------------------------
+    // spieler/{spielerId} – Stammdaten inkl. zugangsToken
+    // ACHTUNG: enthält den Token im Klartext -> nur für MF/Vorstand!
+    // Spieler lesen ihren Namen nicht hier, sondern bekommen ihn
+    // beim Auflösen des Tokens aus /zugang/{token}.
+    // ---------------------------------------------------------------
+    match /spieler/{spielerId} {
+      allow read, write: if istMF();
+    }
+    // ---------------------------------------------------------------
+    // spieltage/{spieltagId} – Termine (nicht vertraulich)
+    // ---------------------------------------------------------------
+    match /spieltage/{spieltagId} {
+      allow read:   if istEingeloggt();
+      allow create: if istMF()
+                    && betreutTeam(request.resource.data.teamId);
+      allow update, delete: if betreutTeam(resource.data.teamId);
+      // -------------------------------------------------------------
+      // verfuegbarkeit/{token} – Zu-/Absage eines Spielers
+      // Doc-ID = Token. Dadurch:
+      //   * Schreiben kann nur, wer den Token kennt
+      //   * Der Token steht NICHT in den Daten, sondern im Pfad
+      //   * 'list' ist für Spieler gesperrt -> keine Token-Leaks
+      // -------------------------------------------------------------
+      match /verfuegbarkeit/{token} {
+        // Eigene Antwort zurücklesen: nur mit Kenntnis des Tokens
+        allow get:  if istEingeloggt() && tokenGueltig(token);
+        // Gesamtübersicht: ausschließlich MF/Vorstand
+        allow list: if betreutTeam(
+                         get(/databases/$(database)/documents/spieltage/$(spieltagId)).data.teamId
+                       );
+        allow create, update: if istEingeloggt()
+          && tokenGueltig(token)
+          // Spieler muss zum Team dieses Spieltags gehören
+          && (get(/databases/$(database)/documents/spieltage/$(spieltagId)).data.teamId
+              in tokenDaten(token).teamIds)
+          // Nur diese Felder, nichts anderes
+	  && request.resource.data.keys().hasAll(['status', 'spielerId', 'zeitpunkt'])
+          && request.resource.data.keys().hasOnly(
+               ['status', 'kommentar', 'zeitpunkt', 'spielerId'])
+          && request.resource.data.status in ['zugesagt', 'abgesagt', 'offen']
+          && request.resource.data.spielerId == tokenDaten(token).spielerId
+          && (!('kommentar' in request.resource.data)
+              || request.resource.data.kommentar.size() <= 300)
+          && request.resource.data.zeitpunkt == request.time;
+        // Löschen nur durch MF (z.B. Spieler aus Team entfernt)
+        allow delete: if istMF();
+      }
+      // -------------------------------------------------------------
+      // aufstellung/{position} – von allen lesbar, nur MF schreibt.
+      // Enthält spielerId (nicht geheim), niemals Tokens.
+      // -------------------------------------------------------------
+      match /aufstellung/{position} {
+        allow read: if istEingeloggt();
+        allow write: if betreutTeam(
+                          get(/databases/$(database)/documents/spieltage/$(spieltagId)).data.teamId
+                        );
+      }
+    }
+    // ---------------------------------------------------------------
+    // Alles andere ist verboten
+    // ---------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

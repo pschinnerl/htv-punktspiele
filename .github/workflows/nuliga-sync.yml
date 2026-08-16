@@ -1,0 +1,24 @@
+name: nuLiga-Synchronisation
+
+on:
+  schedule:
+    # täglich um 05:00 UTC (07:00 Sommerzeit / 06:00 Winterzeit)
+    - cron: '0 5 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: node scripts/nuliga-sync.js
+        env:
+          FIREBASE_SYNC_EMAIL: ${{ secrets.FIREBASE_SYNC_EMAIL }}
+          FIREBASE_SYNC_PASSWORD: ${{ secrets.FIREBASE_SYNC_PASSWORD }}
