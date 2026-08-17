@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import VerwaltungLayout from './components/VerwaltungLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import { useAuth } from './context/AuthContext'
 import Uebersicht from './pages/Uebersicht'
 import SpieltageSeite from './pages/SpieltageSeite'
 import SpielerVerwaltung from './pages/SpielerVerwaltung'
@@ -28,11 +29,40 @@ function VerwaltungBereich() {
           <Route path="/teams" element={<TeamsSeite />} />
           <Route path="/rollen" element={<Rollen />} />
           <Route path="/hilfe" element={<Hilfe />} />
-          <Route path="/datenschutz" element={<Datenschutz />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </VerwaltungLayout>
     </ProtectedRoute>
+  )
+}
+
+// Der Datenschutzhinweis ist für alle erreichbar – auch für Spieler, die nur
+// ihren Link haben. Angemeldete Mannschaftsführer und Vorstandsmitglieder
+// sehen ihn mit der gewohnten Seitenleiste, alle anderen schlank mit einem
+// Zurück-Knopf, damit die Seite keine Sackgasse ist.
+function DatenschutzSeite() {
+  const { loading, istAngemeldet, istMF } = useAuth()
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="page">Lade …</div>
+      </Layout>
+    )
+  }
+
+  if (istAngemeldet && istMF) {
+    return (
+      <VerwaltungLayout>
+        <Datenschutz />
+      </VerwaltungLayout>
+    )
+  }
+
+  return (
+    <Layout>
+      <Datenschutz mitZurueck />
+    </Layout>
   )
 }
 
@@ -47,14 +77,7 @@ function App() {
           </Layout>
         }
       />
-      <Route
-        path="/datenschutz"
-        element={
-          <Layout>
-            <Datenschutz />
-          </Layout>
-        }
-      />
+      <Route path="/datenschutz" element={<DatenschutzSeite />} />
       <Route path="/*" element={<VerwaltungBereich />} />
     </Routes>
   )

@@ -1,8 +1,23 @@
+import { useNavigate } from 'react-router-dom'
+
 // Öffentlich erreichbarer Datenschutzhinweis (auch ohne Anmeldung), damit er
 // aus der Spieler-Ansicht heraus verlinkt werden kann.
-function Datenschutz() {
+// `mitZurueck` blendet oben einen Zurück-Knopf ein – nötig, wenn die Seite
+// ohne Seitenleiste angezeigt wird und es sonst keinen Weg zurück gäbe.
+function Datenschutz({ mitZurueck = false }) {
+  const navigate = useNavigate()
+
   return (
     <div className="page">
+      {mitZurueck && (
+        <button
+          type="button"
+          className="btn btn--secondary btn--klein zurueck-knopf"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+        >
+          ← Zurück
+        </button>
+      )}
       <h1>Datenschutzhinweis</h1>
       <p className="hint">
         Informationen nach Art. 13 DSGVO zur Nutzung der Punktspiel-App des Helmstedter
