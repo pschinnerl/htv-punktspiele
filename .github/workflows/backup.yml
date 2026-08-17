@@ -1,0 +1,39 @@
+name: Wöchentliche Datensicherung
+
+# Sichert den kompletten Datenbestand als JSON und legt ihn als Artefakt ab.
+# Die Datei enthält personenbezogene Daten und die geheimen Spieler-Tokens –
+# sie wird deshalb NICHT ins Repository geschrieben, sondern nur als Artefakt
+# gespeichert (in einem öffentlichen Repository sind Artefakte nur für
+# Personen mit Schreibrechten herunterladbar).
+#
+# Herunterladen: GitHub → Actions → diesen Lauf öffnen → Abschnitt "Artifacts".
+
+on:
+  schedule:
+    # sonntags um 04:00 UTC (06:00 Sommerzeit / 05:00 Winterzeit)
+    - cron: '0 4 * * 0'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: node scripts/backup.js
+        env:
+          FIREBASE_SYNC_EMAIL: ${{ secrets.FIREBASE_SYNC_EMAIL }}
+          FIREBASE_SYNC_PASSWORD: ${{ secrets.FIREBASE_SYNC_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: htv-punktspiele-backup
+          path: backup/*.json
+          retention-days: 90
+          if-no-files-found: error
