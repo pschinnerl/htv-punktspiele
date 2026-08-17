@@ -891,3 +891,15 @@
   font-size: 0.85rem;
   color: var(--htv-text-muted);
 }
+
+/* Zugänge: Kennung/E-Mail und Beschreibung untereinander, nicht aneinandergeklebt */
+.zugang-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.zugang-info strong {
+  word-break: break-all;
+}

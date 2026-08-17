@@ -210,7 +210,7 @@ function Rollen() {
               </li>
             ) : (
               <li key={r.id} className="spieler-list__item">
-                <div>
+                <div className="zugang-info">
                   <strong>{r.email || r.id}</strong>
                   <span className="hint">
                     {r.rolle === 'vorstand'
