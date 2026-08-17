@@ -3,6 +3,7 @@
   "vereinsseite": "https://tnb.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/clubTeams?club=16367",
   "saisonFilter": "Sommer 2026",
   "teamsAnlegen": true,
+  "teamdatenUeberschreiben": true,
   "spielerAnlegen": true,
   "tabelleUebernehmen": true,
   "nurDieseTeams": [],

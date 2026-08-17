@@ -558,3 +558,336 @@
     white-space: normal;
   }
 }
+
+/* --- Erweiterungen: Kommentar, „Weiß noch nicht“, Orga-Infos, QR, Warnungen --- */
+
+.btn-gross--offen.btn-gross--aktiv {
+  background: var(--htv-text-muted);
+  border-color: var(--htv-text-muted);
+  color: #fff;
+}
+
+.spieltag-karte__kommentar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.spieltag-karte__kommentar textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--htv-border);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+
+.spieltag-karte__kommentar textarea:focus {
+  outline: 2px solid var(--htv-blue);
+  outline-offset: 1px;
+}
+
+.spieltag-karte__orga {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  color: var(--htv-text-muted);
+}
+
+.vergangene-spieltage {
+  margin-top: 1.25rem;
+}
+
+.vergangene-spieltage summary {
+  cursor: pointer;
+  color: var(--htv-blue-dark);
+  font-weight: 600;
+  padding: 0.4rem 0;
+}
+
+.spieler-list__qr {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  padding-top: 0.5rem;
+}
+
+.spieler-list__qr img {
+  border: 1px solid var(--htv-border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.aufstellung-warnungen {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #f0c36d;
+  border-radius: var(--radius);
+  background: #fdf6e3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.verfuegbarkeit-liste__kommentar {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--htv-text-muted);
+  font-style: italic;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--htv-blue);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* --- Seitenleiste und Verwaltungs-Grundgerüst --- */
+
+.app-shell--verwaltung .app-main--verwaltung {
+  max-width: 820px;
+  margin: 0;
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.menue-knopf {
+  display: none;
+  border: 1px solid var(--htv-border);
+  background: #fff;
+  border-radius: var(--radius);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  color: var(--htv-blue-dark);
+}
+
+.seitenleiste {
+  width: 230px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid var(--htv-border);
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 64px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.seitenleiste__team {
+  padding: 0 0.25rem;
+}
+
+.seitenleiste__team select {
+  width: 100%;
+}
+
+.seitenleiste__menue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.seitenleiste__link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  color: var(--htv-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.seitenleiste__link:hover {
+  background: var(--htv-blue-light);
+}
+
+.seitenleiste__link--aktiv {
+  background: var(--htv-blue-light);
+  color: var(--htv-blue-dark);
+  font-weight: 700;
+}
+
+.seitenleiste__fuss {
+  margin-top: auto;
+  padding: 0.75rem 0.25rem 0;
+  border-top: 1px solid var(--htv-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.seitenleiste-overlay {
+  display: none;
+}
+
+/* Am Handy klappt die Seitenleiste über den Menü-Knopf auf. */
+@media (max-width: 820px) {
+  .menue-knopf {
+    display: block;
+  }
+
+  /* Kopfzeile über der Seitenleiste halten, damit der Schließen-Knopf
+     auch bei offenem Menü erreichbar bleibt. */
+  .app-header {
+    z-index: 40;
+  }
+
+  .seitenleiste {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    max-height: none;
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+    padding-top: 4.5rem;
+  }
+
+  .seitenleiste--offen {
+    transform: translateX(0);
+  }
+
+  .seitenleiste-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 20;
+  }
+
+  .app-shell--verwaltung .app-main--verwaltung {
+    padding: 1rem;
+  }
+}
+
+/* --- Übersicht --- */
+
+.uebersicht__gross {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--htv-blue-dark);
+  margin: 0 0 0.2rem;
+}
+
+.kennzahlen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.kennzahlen li {
+  display: flex;
+  flex-direction: column;
+}
+
+.kennzahlen strong {
+  font-size: 1.6rem;
+  color: var(--htv-blue-dark);
+  line-height: 1.2;
+}
+
+/* --- Hilfe --- */
+
+.hilfe-abschnitt {
+  border-top: 1px solid var(--htv-border);
+  padding: 0.6rem 0;
+}
+
+.hilfe-abschnitt summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--htv-blue-dark);
+  padding: 0.2rem 0;
+}
+
+.hilfe-abschnitt__inhalt {
+  padding-top: 0.4rem;
+}
+
+.hilfe-abschnitt__inhalt p {
+  margin: 0 0 0.6rem;
+}
+
+.hilfe-schritte {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.hilfe-schritte li {
+  margin-bottom: 0.6rem;
+}
+
+.page--spieler .hilfe-abschnitt {
+  margin-top: 1.25rem;
+  background: #fff;
+  border: 1px solid var(--htv-border);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+}
+
+/* --- Zugänge / Rollen --- */
+
+.rollen-teams {
+  border: 1px solid var(--htv-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.8rem 0.7rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.rollen-teams legend {
+  font-size: 0.9rem;
+  color: var(--htv-text-muted);
+  padding: 0 0.3rem;
+}
+
+.rollen-teams__eintrag {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.app-fuss {
+  padding: 1rem 1.25rem 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--htv-text-muted);
+}

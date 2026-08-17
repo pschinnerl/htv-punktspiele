@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { auth } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 
 function fehlertext(code) {
@@ -25,11 +27,13 @@ function Login() {
   const [email, setEmail] = useState('')
   const [passwort, setPasswort] = useState('')
   const [fehler, setFehler] = useState(null)
+  const [hinweis, setHinweis] = useState(null)
   const [ladevorgang, setLadevorgang] = useState(false)
 
   async function absenden(e) {
     e.preventDefault()
     setFehler(null)
+    setHinweis(null)
     setLadevorgang(true)
     try {
       await login(email.trim(), passwort)
@@ -37,6 +41,25 @@ function Login() {
       setFehler(fehlertext(err.code))
     } finally {
       setLadevorgang(false)
+    }
+  }
+
+  async function passwortVergessen() {
+    setFehler(null)
+    setHinweis(null)
+    const adresse = email.trim()
+    if (!adresse) {
+      setFehler('Bitte zuerst die E-Mail-Adresse eintragen, dann auf „Passwort vergessen“ klicken.')
+      return
+    }
+    try {
+      await sendPasswordResetEmail(auth, adresse)
+      setHinweis(
+        `Eine E-Mail zum Zurücksetzen des Passworts wurde an ${adresse} geschickt. ` +
+          'Bitte auch den Spam-Ordner prüfen.',
+      )
+    } catch (err) {
+      setFehler(fehlertext(err.code))
     }
   }
 
@@ -69,9 +92,14 @@ function Login() {
         </label>
 
         {fehler && <p className="form-error">{fehler}</p>}
+        {hinweis && <p className="hint">{hinweis}</p>}
 
         <button type="submit" className="btn btn--primary" disabled={ladevorgang}>
           {ladevorgang ? 'Anmelden …' : 'Anmelden'}
+        </button>
+
+        <button type="button" className="btn-link" onClick={passwortVergessen}>
+          Passwort vergessen?
         </button>
       </form>
     </div>

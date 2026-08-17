@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { collection, doc, updateDoc, writeBatch } from 'firebase/firestore'
+import QRCode from 'qrcode'
 import { db } from '../../firebase'
 import { useSpieler } from '../../hooks/useSpieler'
 import { erzeugeToken } from '../../lib/token'
@@ -78,6 +79,7 @@ function Spieler({ teamId, teamName }) {
   const [bearbeiteId, setBearbeiteId] = useState(null)
   const [neuerLink, setNeuerLink] = useState(null)
   const [aktionsFehler, setAktionsFehler] = useState(null)
+  const [qr, setQr] = useState(null) // { spielerId, dataUrl }
 
   // Spieler und Zugangs-Token werden gemeinsam in einem Batch angelegt, damit
   // nie ein Spieler ohne gültigen Link (oder umgekehrt) entsteht.
@@ -134,6 +136,37 @@ function Spieler({ teamId, teamName }) {
     }
   }
 
+  // Erzeugt einen neuen Zugangs-Token, z.B. wenn ein Link versehentlich
+  // weitergegeben wurde. Der alte Link wird im selben Batch ungültig.
+  async function linkErneuern(s) {
+    setAktionsFehler(null)
+    if (
+      !window.confirm(
+        `Neuen Link für „${s.name}“ erzeugen? Der bisherige Link funktioniert danach nicht mehr.`,
+      )
+    ) {
+      return
+    }
+    try {
+      const token = erzeugeToken()
+      const batch = writeBatch(db)
+      if (s.zugangsToken) {
+        batch.delete(doc(db, 'zugang', s.zugangsToken))
+      }
+      batch.set(doc(db, 'zugang', token), {
+        spielerId: s.id,
+        teamIds: s.teamIds || [teamId],
+      })
+      batch.update(doc(db, 'spieler', s.id), { zugangsToken: token })
+      await batch.commit()
+      setNeuerLink(spielerLink(token))
+      setQr(null)
+    } catch (err) {
+      console.error('Link konnte nicht erneuert werden:', err)
+      setAktionsFehler('Der Link konnte nicht erneuert werden.')
+    }
+  }
+
   async function kopieren(token, id) {
     try {
       await navigator.clipboard.writeText(spielerLink(token))
@@ -141,6 +174,25 @@ function Spieler({ teamId, teamName }) {
       setTimeout(() => setKopiertId(null), 1500)
     } catch {
       window.prompt('Link zum Kopieren markieren:', spielerLink(token))
+    }
+  }
+
+  // Zeigt den Spieler-Link als QR-Code – praktisch zum Abfotografieren im
+  // Vereinsheim oder beim Training.
+  async function qrAnzeigen(s) {
+    if (qr?.spielerId === s.id) {
+      setQr(null)
+      return
+    }
+    try {
+      const dataUrl = await QRCode.toDataURL(spielerLink(s.zugangsToken), {
+        width: 240,
+        margin: 1,
+      })
+      setQr({ spielerId: s.id, dataUrl, name: s.name })
+    } catch (err) {
+      console.error('QR-Code konnte nicht erzeugt werden:', err)
+      setAktionsFehler('Der QR-Code konnte nicht erzeugt werden.')
     }
   }
 
@@ -193,9 +245,23 @@ function Spieler({ teamId, teamName }) {
                 <button
                   type="button"
                   className="btn btn--secondary btn--klein"
+                  onClick={() => qrAnzeigen(s)}
+                >
+                  {qr?.spielerId === s.id ? 'QR schließen' : 'QR-Code'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--klein"
                   onClick={() => setBearbeiteId(s.id)}
                 >
                   Bearbeiten
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--klein"
+                  onClick={() => linkErneuern(s)}
+                >
+                  Link erneuern
                 </button>
                 <button
                   type="button"
@@ -205,6 +271,12 @@ function Spieler({ teamId, teamName }) {
                   Löschen
                 </button>
               </div>
+              {qr?.spielerId === s.id && (
+                <div className="spieler-list__qr">
+                  <img src={qr.dataUrl} alt={`QR-Code für ${qr.name}`} />
+                  <span className="hint">Spieler-Link für {qr.name} – zum Abfotografieren</span>
+                </div>
+              )}
             </li>
           ),
         )}

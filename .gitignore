@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Datensicherungen (enthalten personenbezogene Daten und Zugangs-Tokens)
+backup/

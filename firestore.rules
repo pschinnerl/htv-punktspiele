@@ -49,11 +49,27 @@ service cloud.firestore {
     }
     // ---------------------------------------------------------------
     // rollen/{uid} – Rollenzuordnung für angemeldete Nutzer
-    // Wird ausschließlich manuell in der Firebase Console gepflegt.
+    // Jeder liest seinen eigenen Eintrag; der Vorstand pflegt alle
+    // Einträge über die Seite „Zugänge“ in der App.
+    // Das Benutzerkonto selbst (E-Mail/Passwort) entsteht weiterhin in
+    // der Firebase Console – hier wird nur die Rolle zugeordnet.
     // ---------------------------------------------------------------
     match /rollen/{uid} {
-      allow read:  if istAngemeldet() && request.auth.uid == uid;
-      allow write: if false;   // nur über Firebase Console
+      allow get:  if istAngemeldet() && (request.auth.uid == uid || istVorstand());
+      allow list: if istVorstand();
+
+      allow create, update: if istVorstand()
+        && request.resource.data.keys().hasAll(['rolle', 'teamIds'])
+        && request.resource.data.keys().hasOnly(['rolle', 'teamIds', 'email'])
+        && request.resource.data.rolle in ['vorstand', 'mannschaftsfuehrer']
+        && request.resource.data.teamIds is list
+        && request.resource.data.teamIds.size() <= 30
+        // Sich selbst nicht versehentlich die Vorstandsrechte entziehen –
+        // sonst könnte niemand mehr Zugänge verwalten.
+        && (uid != request.auth.uid || request.resource.data.rolle == 'vorstand');
+
+      // Den eigenen Zugang kann niemand löschen (Aussperr-Schutz).
+      allow delete: if istVorstand() && uid != request.auth.uid;
     }
     // ---------------------------------------------------------------
     // zugang/{token} – Lookup-Tabelle Token -> Spieler

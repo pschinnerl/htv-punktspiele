@@ -5,6 +5,8 @@ import { useSpieler } from '../../hooks/useSpieler'
 import { useVerfuegbarkeit } from '../../hooks/useVerfuegbarkeit'
 import { useAufstellung } from '../../hooks/useAufstellung'
 import { nachRang, rangFuerTeam } from '../../lib/spieler'
+import { aufstellungsWarnungen } from '../../lib/aufstellung'
+import { formatDatum, formatDatumKurz } from '../../lib/datum'
 
 const STATUS_TEXT = {
   zugesagt: 'Zugesagt',
@@ -26,6 +28,7 @@ function SpieltagDetails({ spieltag, teamId }) {
   const [speichern, setSpeichern] = useState(false)
   const [fehler, setFehler] = useState(null)
   const [gespeichert, setGespeichert] = useState(false)
+  const [textKopiert, setTextKopiert] = useState(false)
 
   useEffect(() => {
     if (zeilen === null && !ladeAufstellung) {
@@ -48,6 +51,41 @@ function SpieltagDetails({ spieltag, teamId }) {
   const zugesagt = spieler
     .filter((s) => verfuegbarkeit[s.id]?.status === 'zugesagt')
     .sort(nachRang(teamId))
+
+  const offene = spieler.filter(
+    (s) => !verfuegbarkeit[s.id] || verfuegbarkeit[s.id].status === 'offen',
+  )
+
+  const warnungen = aufstellungsWarnungen({
+    zeilen: zeilen || [],
+    spieler,
+    teamId,
+    verfuegbarkeit,
+  })
+
+  // Fertiger Erinnerungstext zum Einfügen in die Mannschafts-WhatsApp-Gruppe.
+  async function erinnerungKopieren() {
+    const zeilenText = [
+      `🎾 Punktspiel am ${formatDatum(spieltag.datum)} um ${spieltag.uhrzeit} Uhr – ` +
+        `${spieltag.heimAuswaerts === 'heim' ? 'Heimspiel' : 'Auswärts'} gegen ${spieltag.gegner}.`,
+    ]
+    if (spieltag.treffpunkt) zeilenText.push(`Treffpunkt: ${spieltag.treffpunkt}`)
+    if (offene.length > 0) {
+      zeilenText.push(`Noch keine Rückmeldung von: ${offene.map((s) => s.name).join(', ')}.`)
+    }
+    zeilenText.push(
+      `Bitte über euren persönlichen Spieler-Link zu- oder absagen` +
+        (spieltag.antwortFrist ? ` – bis ${formatDatumKurz(spieltag.antwortFrist)}!` : '.'),
+    )
+    const text = zeilenText.join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setTextKopiert(true)
+      setTimeout(() => setTextKopiert(false), 1500)
+    } catch {
+      window.prompt('Text zum Kopieren markieren:', text)
+    }
+  }
 
   function vorschlagFuellen() {
     setZeilen(
@@ -117,11 +155,17 @@ function SpieltagDetails({ spieltag, teamId }) {
         {ladeVerf && <p className="hint">Lade …</p>}
         <ul className="verfuegbarkeit-liste">
           {spieler.map((s) => {
-            const status = verfuegbarkeit[s.id]?.status
+            const eintrag = verfuegbarkeit[s.id]
+            const status = eintrag?.status
             return (
               <li key={s.id}>
                 <span>
                   {rangFuerTeam(s, teamId)}. {s.name}
+                  {eintrag?.kommentar && (
+                    <span className="verfuegbarkeit-liste__kommentar">
+                      „{eintrag.kommentar}“
+                    </span>
+                  )}
                 </span>
                 <span className={`status-badge status-badge--${status || 'offen'}`}>
                   {STATUS_TEXT[status] || 'Offen'}
@@ -130,6 +174,17 @@ function SpieltagDetails({ spieltag, teamId }) {
             )
           })}
         </ul>
+
+        <button
+          type="button"
+          className="btn btn--secondary btn--klein"
+          onClick={erinnerungKopieren}
+        >
+          {textKopiert ? 'Kopiert ✓' : '💬 Erinnerungstext kopieren'}
+        </button>
+        <p className="hint">
+          Fertigen Text z.B. in die Mannschafts-WhatsApp-Gruppe einfügen.
+        </p>
       </div>
 
       <div className="spieltag-details__spalte">
@@ -207,6 +262,14 @@ function SpieltagDetails({ spieltag, teamId }) {
               + Position hinzufügen
             </button>
           </div>
+        )}
+
+        {warnungen.length > 0 && (
+          <ul className="aufstellung-warnungen">
+            {warnungen.map((w) => (
+              <li key={w}>⚠️ {w}</li>
+            ))}
+          </ul>
         )}
 
         {fehler && <p className="form-error">{fehler}</p>}

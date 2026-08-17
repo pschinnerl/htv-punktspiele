@@ -13,7 +13,7 @@
 //
 // Konfiguration: scripts/nuliga-config.json
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { initializeApp } from 'firebase/app'
@@ -31,6 +31,7 @@ import {
   arrayUnion,
   writeBatch,
 } from 'firebase/firestore'
+import { zugangsdatenLesen } from './zugangsdaten.js'
 import {
   parseVereinsseite,
   parseGruppenLink,
@@ -100,21 +101,45 @@ async function alleLaden(db, sammlung) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
-async function teamSicherstellen(db, vorhandene, mannschaft, teamsAnlegen) {
+async function teamSicherstellen(
+  db,
+  vorhandene,
+  mannschaft,
+  teamsAnlegen,
+  teamdatenUeberschreiben,
+) {
   const gesucht = normalisiereTeamName(mannschaft.name).toLowerCase()
   const treffer = vorhandene.find(
     (t) => normalisiereTeamName(t.name || '').toLowerCase() === gesucht,
   )
 
   if (treffer) {
-    // Vorhandenes Team nicht überschreiben (Name/Liga/Saison können bewusst
-    // abweichend gepflegt sein) – nur die nuLiga-Herkunft ergänzen.
-    await setDoc(
-      doc(db, 'teams', treffer.id),
-      { nuligaUrl: mannschaft.url, nuligaName: mannschaft.nuligaName },
-      { merge: true },
-    )
-    return { id: treffer.id, neu: false }
+    const felder = {
+      nuligaUrl: mannschaft.url,
+      nuligaName: mannschaft.nuligaName,
+    }
+
+    // nuLiga ist die maßgebliche Quelle: von Hand eingetragene Liga- und
+    // Saisonangaben werden auf den dortigen Stand gebracht. Wer das nicht
+    // möchte, setzt teamdatenUeberschreiben in nuliga-config.json auf false.
+    const geaendert = []
+    if (teamdatenUeberschreiben) {
+      for (const [feld, neu] of [
+        ['name', mannschaft.name],
+        ['liga', mannschaft.liga],
+        ['saison', mannschaft.saison],
+      ]) {
+        const alt = treffer[feld] || ''
+        if (neu && neu !== alt) {
+          felder[feld] = neu
+          geaendert.push(`${feld}: "${alt}" → "${neu}"`)
+        }
+      }
+    }
+
+    await setDoc(doc(db, 'teams', treffer.id), felder, { merge: true })
+    Object.assign(treffer, felder)
+    return { id: treffer.id, neu: false, geaendert }
   }
 
   if (!teamsAnlegen) return null
@@ -265,36 +290,8 @@ async function spielerSynchronisieren(db, teamId, meldeliste, cache, spielerAnle
 
 // ---------------------------------------------------------------------------
 
-// Zugangsdaten kommen entweder aus Umgebungsvariablen (so liefert GitHub
-// Actions die Secrets) oder – für den Aufruf von Hand – aus der lokalen
-// Datei scripts/zugang.local. Die Endung ".local" ist in .gitignore
-// ausgeschlossen, die Datei landet also nicht im öffentlichen Repository.
-function zugangsdatenLesen() {
-  let email = process.env.FIREBASE_SYNC_EMAIL
-  let passwort = process.env.FIREBASE_SYNC_PASSWORD
-  if (email && passwort) return { email, passwort, quelle: 'Umgebungsvariablen' }
-
-  const pfad = join(__dirname, 'zugang.local')
-  if (existsSync(pfad)) {
-    for (const zeile of readFileSync(pfad, 'utf-8').split('\n')) {
-      const treffer = zeile.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/)
-      if (!treffer) continue
-      const wert = treffer[2].replace(/^["']|["']$/g, '')
-      if (treffer[1] === 'FIREBASE_SYNC_EMAIL') email = email || wert
-      if (treffer[1] === 'FIREBASE_SYNC_PASSWORD') passwort = passwort || wert
-    }
-    if (email && passwort) return { email, passwort, quelle: pfad }
-  }
-
-  throw new Error(
-    'Keine Zugangsdaten gefunden.\n' +
-      'Entweder scripts/zugang.local anlegen mit den beiden Zeilen:\n' +
-      '  FIREBASE_SYNC_EMAIL=deine@mail.de\n' +
-      '  FIREBASE_SYNC_PASSWORD=deinPasswort\n' +
-      'oder die Variablen beim Aufruf voranstellen:\n' +
-      '  FIREBASE_SYNC_EMAIL="…" FIREBASE_SYNC_PASSWORD="…" npm run sync:nuliga',
-  )
-}
+// Die Ermittlung der Zugangsdaten steckt in scripts/zugangsdaten.js, weil sie
+// sich die Sicherung (scripts/backup.js) mit diesem Skript teilt.
 
 async function main() {
   const { email, passwort, quelle } = zugangsdatenLesen()
@@ -306,6 +303,7 @@ async function main() {
     vereinsseite,
     saisonFilter = '',
     teamsAnlegen = true,
+    teamdatenUeberschreiben = true,
     spielerAnlegen = true,
     tabelleUebernehmen = true,
     nurDieseTeams = [],
@@ -345,6 +343,7 @@ async function main() {
 
   const bilanz = {
     teamsNeu: 0,
+    teamsGeaendert: 0,
     spieltage: 0,
     spielerNeu: 0,
     spielerAktualisiert: 0,
@@ -356,7 +355,13 @@ async function main() {
 
     let team
     try {
-      team = await teamSicherstellen(db, teamCache, mannschaft, teamsAnlegen)
+      team = await teamSicherstellen(
+        db,
+        teamCache,
+        mannschaft,
+        teamsAnlegen,
+        teamdatenUeberschreiben,
+      )
     } catch (err) {
       console.error(`  Team konnte nicht angelegt/aktualisiert werden: ${err.message}`)
       continue
@@ -368,6 +373,9 @@ async function main() {
     if (team.neu) {
       bilanz.teamsNeu += 1
       console.log('  Team in der App neu angelegt.')
+    } else if (team.geaendert?.length > 0) {
+      bilanz.teamsGeaendert += 1
+      team.geaendert.forEach((z) => console.log(`  Teamdaten aktualisiert – ${z}`))
     }
 
     let html
@@ -483,7 +491,8 @@ async function main() {
 
   console.log(
     `\nZusammenfassung: ${mannschaften.length} Mannschaft(en) verarbeitet, ` +
-      `${bilanz.teamsNeu} Team(s) neu, ${bilanz.spieltage} Spieltag-Eintrag(e), ` +
+      `${bilanz.teamsNeu} Team(s) neu, ${bilanz.teamsGeaendert} Team(s) aktualisiert, ` +
+      `${bilanz.spieltage} Spieltag-Eintrag(e), ` +
       `${bilanz.spielerNeu} Spieler neu, ${bilanz.spielerAktualisiert} Spieler aktualisiert, ` +
       `${bilanz.tabellen} Ligatabelle(n).`,
   )

@@ -11,10 +11,12 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "sync:nuliga": "node scripts/nuliga-sync.js",
+    "backup": "node scripts/backup.js",
     "test:nuliga-parser": "node scripts/nuliga-sync.test.mjs"
   },
   "dependencies": {
     "firebase": "^12.17.1",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"
