@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { VERSION_TEXT } from '../lib/version'
 
 function Abschnitt({ titel, children }) {
   return (
@@ -18,7 +19,7 @@ function Hilfe() {
       <h1>Hilfe</h1>
       <p className="hint">
         Kurzanleitung für Mannschaftsführer und Vorstand. Die Abschnitte lassen sich
-        einzeln aufklappen.
+        einzeln aufklappen. – {VERSION_TEXT}
       </p>
 
       <section className="card">

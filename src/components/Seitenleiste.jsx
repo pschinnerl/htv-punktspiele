@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTeamAuswahl } from '../context/TeamContext'
+import { VERSION_TEXT } from '../lib/version'
 
 // Menüpunkte der Verwaltung. `nurVorstand` blendet Einträge für
 // Mannschaftsführer aus.
@@ -74,6 +75,7 @@ function Seitenleiste({ offen, onSchliessen }) {
           <button type="button" className="btn btn--secondary btn--klein" onClick={logout}>
             Abmelden
           </button>
+          <span className="seitenleiste__version">{VERSION_TEXT}</span>
         </div>
       </nav>
     </>

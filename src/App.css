@@ -404,6 +404,7 @@
 .spieltag-list__actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -902,4 +903,104 @@
 
 .zugang-info strong {
   word-break: break-all;
+}
+
+
+/* --- Schmale Displays: Spieltage, Formulare und Aufstellung stapeln ---
+   Auf dem Handy standen Status-Auswahl und die vier Schaltflächen in einer
+   Zeile – dadurch war die Seite breiter als der Bildschirm und ließ sich
+   seitlich verschieben. Alles wird deshalb untereinander gesetzt. */
+@media (max-width: 620px) {
+  .app-main--verwaltung {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Formulare: jedes Feld über die volle Breite */
+  .inline-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inline-form .field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .inline-form__actions {
+    flex-direction: column;
+  }
+
+  .inline-form__actions .btn {
+    width: 100%;
+  }
+
+  /* Spieltag-Eintrag: Angaben oben, Schaltflächen darunter */
+  .spieltag-list__zeile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .spieltag-list__info {
+    min-width: 0;
+  }
+
+  .spieltag-list__actions select {
+    flex: 1 1 100%;
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+
+  /* Hauptaktion über die volle Breite, Bearbeiten/Löschen daneben */
+  .spieltag-list__actions .btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+  }
+
+  .spieltag-list__actions .btn:first-of-type {
+    flex-basis: 100%;
+  }
+
+  /* Aufstellung: Beschriftung und Spielerauswahl untereinander */
+  .aufstellung-zeile {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aufstellung-zeile__label,
+  .aufstellung-zeile select {
+    width: 100%;
+  }
+
+  .spieltag-details__speichern .btn {
+    width: 100%;
+  }
+
+  /* Verfügbarkeitsliste: langer Name darf umbrechen */
+  .verfuegbarkeit-liste li {
+    align-items: flex-start;
+  }
+
+  .verfuegbarkeit-liste li > span:first-child {
+    min-width: 0;
+  }
+}
+
+/* Versionsangabe */
+.seitenleiste__version {
+  font-size: 0.75rem;
+  color: var(--htv-text-muted);
+}
+
+.app-fuss {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.app-fuss__version {
+  font-size: 0.75rem;
 }
