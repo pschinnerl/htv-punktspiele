@@ -169,45 +169,7 @@ async function teamSicherstellen(
   vorhandene.push({ id: ref.id, name: mannschaft.name })
   return { id: ref.id, neu: true }
 }
-    }
-
-    // nuLiga ist die maßgebliche Quelle: von Hand eingetragene Liga- und
-    // Saisonangaben werden auf den dortigen Stand gebracht. Wer das nicht
-    // möchte, setzt teamdatenUeberschreiben in nuliga-config.json auf false.
-    const geaendert = []
-    if (teamdatenUeberschreiben) {
-      for (const [feld, neu] of [
-        ['name', mannschaft.name],
-        ['liga', mannschaft.liga],
-        ['saison', mannschaft.saison],
-      ]) {
-        const alt = treffer[feld] || ''
-        if (neu && neu !== alt) {
-          felder[feld] = neu
-          geaendert.push(`${feld}: "${alt}" → "${neu}"`)
-        }
-      }
-    }
-
-    await setDoc(doc(db, 'teams', treffer.id), felder, { merge: true })
-    Object.assign(treffer, felder)
-    return { id: treffer.id, neu: false, geaendert }
-  }
-
-  if (!teamsAnlegen) return null
-
-  const ref = doc(collection(db, 'teams'))
-  await setDoc(ref, {
-    name: mannschaft.name,
-    liga: mannschaft.liga,
-    saison: mannschaft.saison,
-    nuligaUrl: mannschaft.url,
-    nuligaName: mannschaft.nuligaName,
-    quelle: 'nuliga',
-  })
-  vorhandene.push({ id: ref.id, name: mannschaft.name })
-  return { id: ref.id, neu: true }
-}
+   
 
 // Führt die Begegnungen aus Mannschafts- und Ligaseite zusammen. Bei
 // doppelten Einträgen gewinnt der informativere (mit Ergebnis bzw. Uhrzeit).
