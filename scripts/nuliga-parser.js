@@ -281,6 +281,54 @@ export function parseMeldeliste(html) {
 }
 
 // ---------------------------------------------------------------------------
+// Namentliche Mannschaftsmeldung (clubPools)
+// Die Mannschaftsseite (teamPortrait) zeigt höchstens 16 Spieler. Die
+// vollständige Meldeliste (z.B. Rang 17–20) steht nur auf der Seite
+// "Nam. Meldung" des Vereins – je Saison und Altersklasse. Ihre Zeilen haben
+// dasselbe Format (Rang | LK | ID | Name (Jahr) | Nation | Lizenz-Nr. ...),
+// daher kann sie mit parseMeldeliste gelesen werden.
+// ---------------------------------------------------------------------------
+
+// nuLiga-championship -> seasonName der Meldungsseite:
+//   "TNB Winter 26/27" -> "Winter 2026/2027"
+//   "TNB Sommer 2026"  -> "Sommer 2026"
+// Andere Wettbewerbe (z.B. Vereinspokal "TNB VP 26") liefern null.
+export function saisonZuSeasonName(saison) {
+  const t = normalisiere(saison)
+  const winter = t.match(/Winter\s+(\d{2,4})\s*\/\s*(\d{2,4})/i)
+  if (winter) {
+    const voll = (j) => (j.length === 2 ? `20${j}` : j)
+    return `Winter ${voll(winter[1])}/${voll(winter[2])}`
+  }
+  const sommer = t.match(/Sommer\s+(\d{2,4})/i)
+  if (sommer) {
+    const j = sommer[1].length === 2 ? `20${sommer[1]}` : sommer[1]
+    return `Sommer ${j}`
+  }
+  return null
+}
+
+// URL der Meldungsseite für eine Mannschaft, z.B.
+// .../clubPools?club=16367&seasonName=Winter+2026%2F2027&contestType=Herren+40
+export function meldungsUrl(vereinsseite, saison, teamName) {
+  const seasonName = saisonZuSeasonName(saison)
+  if (!seasonName || !teamName) return null
+  let basis
+  try {
+    basis = new URL(vereinsseite)
+  } catch {
+    return null
+  }
+  const club = basis.searchParams.get('club')
+  if (!club) return null
+  const url = new URL(basis.pathname.replace(/clubTeams$/, 'clubPools'), basis.origin)
+  url.searchParams.set('club', club)
+  url.searchParams.set('seasonName', seasonName)
+  url.searchParams.set('contestType', teamName)
+  return url.toString()
+}
+
+// ---------------------------------------------------------------------------
 // Ligatabelle (groupPage)
 // Spalten laut nuLiga: Rang | Mannschaft | Begegnungen | S | U | N |
 //                      Tab.Punkte | Matchpunkte | Sätze | Spiele

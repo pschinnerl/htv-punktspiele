@@ -38,6 +38,7 @@ import {
   parseSpielplanHtml,
   parseMeldeliste,
   parseTabelle,
+  meldungsUrl,
   normalisiereTeamName,
   namensSchluessel,
 } from './nuliga-parser.js'
@@ -448,7 +449,30 @@ async function main() {
     }
 
     // --- Meldeliste / Spieler ---
-    const meldeliste = parseMeldeliste(html)
+    // Die Mannschaftsseite zeigt höchstens 16 Spieler. Die vollständige Liste
+    // steht in der namentlichen Mannschaftsmeldung des Vereins. Diese gilt je
+    // Altersklasse – sie wird daher nur genutzt, wenn es in dieser Saison
+    // genau EINE Mannschaft dieser Altersklasse gibt (sonst wären die
+    // Spieler von "Herren" und "Herren II" nicht zu unterscheiden).
+    let meldeliste = parseMeldeliste(html)
+    const gleicheKlasse = mannschaften.filter(
+      (m) => m.saison === mannschaft.saison && m.name === mannschaft.name,
+    ).length
+    const vollUrl =
+      gleicheKlasse === 1 ? meldungsUrl(vereinsseite, mannschaft.saison, mannschaft.name) : null
+    if (vollUrl) {
+      try {
+        const voll = parseMeldeliste(await htmlLaden(vollUrl))
+        if (voll.length > meldeliste.length) {
+          console.log(
+            `  Mannschaftsseite: ${meldeliste.length} Spieler, namentliche Meldung: ${voll.length} – nutze die vollständige Liste.`,
+          )
+          meldeliste = voll
+        }
+      } catch (err) {
+        console.warn(`  Namentliche Meldung nicht lesbar (${err.message}) – nutze Mannschaftsseite.`)
+      }
+    }
     console.log(`  Meldeliste: ${meldeliste.length} Spieler.`)
     if (meldeliste.length === 0) {
       debugSchreiben(html, `${mannschaft.name}-meldeliste`)

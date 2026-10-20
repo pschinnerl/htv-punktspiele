@@ -11,6 +11,8 @@ import {
   normalisiereTeamName,
   normalisiereSpielerName,
   namensSchluessel,
+  saisonZuSeasonName,
+  meldungsUrl,
 } from './nuliga-parser.js'
 
 let fehler = 0
@@ -293,6 +295,57 @@ pruefe(
 pruefe(
   'verschiedene Spieler bleiben unterscheidbar',
   namensSchluessel('Malte Quoll') !== namensSchluessel('Malte Quolle'),
+)
+
+// ---------------------------------------------------------------------------
+// Namentliche Mannschaftsmeldung (clubPools): vollständige Liste über Rang 16
+// hinaus. Aufbau nachgebildet nach der echten nuLiga-Seite (Name als Link,
+// Jahrgang dahinter, zusätzliche Spalte Lizenz-Nr.).
+// ---------------------------------------------------------------------------
+const meldungHtml = `<table><tr><th>Rang</th><th>LK</th><th>ID-Nummer</th><th>Name, Vorname (Jahrgang)</th><th>Nation</th><th>Lizenz-Nr.</th><th>Info</th><th>SG</th><th>MF</th></tr>
+<tr><td> 1 </td><td> LK25,0 </td><td> 10000001 </td><td><a href="#c1" title="Spielerportrait">SpielerA, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 111 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 2 </td><td> LK25,0 </td><td> 10000002 </td><td><a href="#c2" title="Spielerportrait">SpielerB, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 112 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 3 </td><td> LK25,0 </td><td> 10000003 </td><td><a href="#c3" title="Spielerportrait">SpielerC, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 113 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 4 </td><td> LK25,0 </td><td> 10000004 </td><td><a href="#c4" title="Spielerportrait">SpielerD, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 114 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 5 </td><td> LK25,0 </td><td> 10000005 </td><td><a href="#c5" title="Spielerportrait">SpielerE, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 115 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 6 </td><td> LK25,0 </td><td> 10000006 </td><td><a href="#c6" title="Spielerportrait">SpielerF, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 116 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 7 </td><td> LK25,0 </td><td> 10000007 </td><td><a href="#c7" title="Spielerportrait">SpielerG, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 117 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 8 </td><td> LK25,0 </td><td> 10000008 </td><td><a href="#c8" title="Spielerportrait">SpielerH, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 118 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 9 </td><td> LK25,0 </td><td> 10000009 </td><td><a href="#c9" title="Spielerportrait">SpielerI, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 119 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 10 </td><td> LK25,0 </td><td> 10000010 </td><td><a href="#c10" title="Spielerportrait">SpielerJ, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1110 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 11 </td><td> LK25,0 </td><td> 10000011 </td><td><a href="#c11" title="Spielerportrait">SpielerK, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1111 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 12 </td><td> LK25,0 </td><td> 10000012 </td><td><a href="#c12" title="Spielerportrait">SpielerL, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1112 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 13 </td><td> LK25,0 </td><td> 10000013 </td><td><a href="#c13" title="Spielerportrait">SpielerM, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1113 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 14 </td><td> LK25,0 </td><td> 10000014 </td><td><a href="#c14" title="Spielerportrait">SpielerN, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1114 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 15 </td><td> LK25,0 </td><td> 10000015 </td><td><a href="#c15" title="Spielerportrait">SpielerO, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1115 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 16 </td><td> LK25,0 </td><td> 10000016 </td><td><a href="#c16" title="Spielerportrait">SpielerP, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1116 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 17 </td><td> LK25,0 </td><td> 10000017 </td><td><a href="#c17" title="Spielerportrait">SpielerQ, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1117 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 18 </td><td> LK25,0 </td><td> 10000018 </td><td><a href="#c18" title="Spielerportrait">SpielerR, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1118 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 19 </td><td> LK25,0 </td><td> 10000019 </td><td><a href="#c19" title="Spielerportrait">SpielerS, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1119 </td><td></td><td> </td><td> </td></tr>
+<tr><td> 20 </td><td> LK25,0 </td><td> 10000020 </td><td><a href="#c20" title="Spielerportrait">SpielerT, Vorname</a><div style="display:none;"><a href="https://www.tennis.de/x"> </a></div> &nbsp; (1980)&nbsp; </td><td> </td><td> 1120 </td><td></td><td> </td><td> </td></tr>
+</table>`
+const meldung = parseMeldeliste(meldungHtml)
+pruefe('Namentliche Meldung: alle 20 Spieler erkannt', meldung.length === 20, meldung.length)
+pruefe(
+  'Rang 17–20 enthalten',
+  meldung.slice(16).map((s) => s.meldelisteRang).join(',') === '17,18,19,20',
+  meldung.slice(16),
+)
+pruefe('Name aus Link + Jahrgang korrekt', meldung[0].name === 'Vorname SpielerA', meldung[0])
+
+pruefe('Saison Winter', saisonZuSeasonName('TNB Winter 26/27') === 'Winter 2026/2027', saisonZuSeasonName('TNB Winter 26/27'))
+pruefe('Saison Sommer', saisonZuSeasonName('TNB Sommer 2026') === 'Sommer 2026')
+pruefe('Vereinspokal ohne Meldungsseite', saisonZuSeasonName('TNB VP 26') === null)
+const mUrl = meldungsUrl(
+  'https://tnb.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/clubTeams?club=16367',
+  'TNB Winter 26/27',
+  'Herren 40',
+)
+pruefe(
+  'URL der namentlichen Meldung',
+  mUrl ===
+    'https://tnb.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/clubPools?club=16367&seasonName=Winter+2026%2F2027&contestType=Herren+40',
+  mUrl,
 )
 
 // ---------------------------------------------------------------------------
